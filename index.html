@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AkseGrader</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800;900&display=swap');
+
+        :root {
+            --bg: #0f0f13; --panel: #18181f; --card: #22222b;
+            --gold: #ffd700; --green: #00e676; --red: #ff1744;
+            --text: #fff; --text-muted: #888; --border: #2a2a35;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Montserrat', sans-serif; user-select: none; }
+        body { background: var(--bg); color: var(--text); overflow-x: hidden; height: 100vh; display: flex; flex-direction: column; }
+
+        .view { display: none; flex-direction: column; height: 100%; overflow-y: auto; animation: fadeIn 0.4s ease; }
+        .view.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Приветствие */
+        #view-welcome { justify-content: center; align-items: center; text-align: center; background: radial-gradient(circle at center, #1a1a24 0%, #0f0f13 100%); }
+        .main-logo { font-size: 64px; font-weight: 900; color: var(--gold); text-transform: uppercase; letter-spacing: 4px; text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); animation: pulse 2s infinite alternate; margin-bottom: 20px; }
+        @keyframes pulse { 0% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); } 100% { text-shadow: 0 0 40px rgba(255, 215, 0, 0.9); } }
+        .welcome-text { color: var(--text-muted); font-size: 18px; max-width: 500px; line-height: 1.6; margin-bottom: 40px; }
+        .btn-start { background: linear-gradient(135deg, var(--gold), #ff8c00); color: #000; font-weight: 800; font-size: 20px; padding: 18px 50px; border: none; border-radius: 40px; cursor: pointer; transition: 0.3s; box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3); text-transform: uppercase; }
+        .btn-start:hover { transform: translateY(-3px) scale(1.05); }
+
+        /* Шапка */
+        header { background: var(--panel); border-bottom: 1px solid var(--border); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; z-index: 10; }
+        .nav-links { display: flex; gap: 20px; align-items: center; }
+        .nav-btn { background: none; border: none; color: var(--text-muted); font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .nav-btn:hover, .nav-btn.active { color: var(--gold); }
+        .user-info { display: flex; gap: 15px; align-items: center; background: var(--card); padding: 8px 15px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; }
+        .user-info span { color: var(--gold); font-weight: 800; }
+
+        /* Рулетка */
+        .game-container { display: flex; justify-content: center; align-items: center; gap: 40px; padding: 40px 20px; flex-wrap: wrap; flex: 1; max-width: 1200px; margin: 0 auto; width: 100%; }
+        .slot { background: var(--panel); border-radius: 20px; padding: 20px; width: 320px; border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; }
+        .slot-title { font-size: 14px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-height: 300px; overflow-y: auto; padding-right: 5px; }
+        .grid::-webkit-scrollbar { width: 6px; } .grid::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+        .item { background: var(--card); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: 0.2s; border: 2px solid transparent; }
+        .item:hover { background: #2c2c38; transform: translateY(-2px); }
+        .item.selected { border-color: var(--green); background: rgba(0, 230, 118, 0.1); }
+        .item img { width: 65px; height: 65px; object-fit: contain; margin-bottom: 8px; }
+        .item-price { background: #111; color: var(--gold); font-size: 12px; font-weight: 800; padding: 3px 10px; border-radius: 20px; }
+
+        /* Колесо */
+        .center-wheel { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .wheel-wrapper { position: relative; width: 260px; height: 260px; }
+        .wheel-arrow { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--gold); z-index: 5; }
+        .wheel { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--card); position: relative; background: conic-gradient(var(--green) 0deg, var(--red) 0deg); transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1); box-shadow: 0 0 30px rgba(0,0,0,0.8); display: flex; justify-content: center; align-items: center; }
+        .wheel-center { width: 120px; height: 120px; background: var(--panel); border-radius: 50%; z-index: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 2px solid var(--border); }
+        .chance-val { font-size: 28px; font-weight: 900; color: var(--gold); }
+        .chance-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; }
+
+        .quick-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .q-btn { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 15px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .q-btn:hover { background: #333; }
+        .q-btn.active { background: rgba(255, 215, 0, 0.2); border-color: var(--gold); color: var(--gold); }
+        
+        .action-btn { background: linear-gradient(135deg, var(--green), #00b0ff); color: #000; width: 100%; padding: 18px; border: none; border-radius: 12px; font-size: 18px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+        /* Инвентарь и Админка */
+        .inv-container, .admin-container { padding: 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
+        .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
+        .admin-login { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 70vh; gap: 20px; }
+        .admin-login input { padding: 15px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: white; text-align: center; width: 300px; }
+        .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .admin-card { background: var(--panel); padding: 25px; border-radius: 15px; border: 1px solid var(--border); }
+        .admin-card h3 { margin-bottom: 15px; color: var(--gold); }
+        .admin-card input, .admin-card select { width: 100%; padding: 12px; margin-bottom: 10px; background: var(--bg); border: 1px solid var(--border); color: white; border-radius: 8px; }
+        .admin-card button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; margin-bottom: 10px; color: white; }
+
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
+        .overlay h1 { color: var(--red); font-size: 40px; margin-bottom: 15px; }
+
+        @media (max-width: 768px) {
+            .game-container { flex-direction: column; padding: 20px; }
+            .slot { width: 100%; }
+            .admin-grid { grid-template-columns: 1fr; }
+            .main-logo { font-size: 40px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="overlay" id="ov-closed"><h1>Сайт временно закрыт</h1><p id="close-reason-text"></p></div>
+    <div class="overlay" id="ov-banned"><h1>Вы заблокированы</h1><p id="ban-reason-text"></p></div>
+
+    <!-- ЭКРАН 1: ПРИВЕТСТВИЕ -->
+    <div class="view active" id="view-welcome">
+        <div class="main-logo">AkseGrader</div>
+        <div class="welcome-text">Добро пожаловать в лучшую рулетку подарков!<br>Желаем тебе огромной удачи и жирных апгрейдов! 🍀</div>
+        <button class="btn-start" onclick="switchView('view-main')">Перейти к улучшению</button>
+        <button class="nav-btn" style="margin-top:30px;" onclick="switchView('view-admin-login')">Вход для администратора</button>
+    </div>
+
+    <!-- ЭКРАН 2: РУЛЕТКА -->
+    <div class="view" id="view-main">
+        <header>
+            <div class="nav-links">
+                <button class="nav-btn active">Рулетка</button>
+                <button class="nav-btn" onclick="switchView('view-inventory')">Мой Инвентарь</button>
+                <button class="nav-btn" onclick="switchView('view-admin-login')">Вход админа</button>
+            </div>
+            <div class="user-info">
+                <div>ID: <span id="user-id">...</span></div>
+                <div>Подарков: <span id="user-inv-count">0</span></div>
+            </div>
+            <a href="https://t.me/akselovvv" target="_blank" style="color:#0088cc; font-weight:800; text-decoration:none;">Пополнить (TG)</a>
+        </header>
+
+        <div class="game-container">
+            <div class="slot">
+                <div class="slot-title">Ваши предметы</div>
+                <div class="grid" id="my-items"></div>
+            </div>
+
+            <div class="center-wheel">
+                <div class="wheel-wrapper">
+                    <div class="wheel-arrow"></div>
+                    <div class="wheel" id="wheel">
+                        <div class="wheel-center">
+                            <div class="chance-val" id="chance-text">50%</div>
+                            <div class="chance-label">Шанс</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="quick-btns">
+                    <button class="q-btn" onclick="setChance(5)">5%</button>
+                    <button class="q-btn" onclick="setChance(10)">10%</button>
+                    <button class="q-btn" onclick="setChance(30)">30%</button>
+                    <button class="q-btn active" onclick="setChance(50)">50%</button>
+                    <button class="q-btn" onclick="setChance(70)">70%</button>
+                    <button class="q-btn" onclick="setChance(90)">90%</button>
+                </div>
+                <button class="action-btn" id="btn-spin" onclick="spinWheel()" disabled>Крутить</button>
+            </div>
+
+            <div class="slot">
+                <div class="slot-title">На что меняем?</div>
+                <div class="grid" id="target-items"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 3: ИНВЕНТАРЬ -->
+    <div class="view" id="view-inventory">
+        <header><button class="nav-btn" onclick="switchView('view-main')">← Назад</button><h2 style="color:var(--gold);">Инвентарь</h2></header>
+        <div class="inv-container"><div class="inv-grid" id="inv-grid"></div></div>
+    </div>
+
+    <!-- ЭКРАН 4: ВХОД АДМИНА -->
+    <div class="view" id="view-admin-login">
+        <header><button class="nav-btn" onclick="switchView('view-welcome')">← На главную</button></header>
+        <div class="admin-login">
+            <h2 style="color:var(--gold);">Вход в Админ-Панель</h2>
+            <input type="password" id="admin-pass" placeholder="Введите код доступа">
+            <button class="btn-start" style="font-size:16px; padding:12px 30px;" onclick="loginAdmin()">Войти</button>
+        </div>
+    </div>
+
+    <!-- ЭКРАН 5: АДМИН ПАНЕЛЬ -->
+    <div class="view" id="view-admin-panel">
+        <header><h2 style="color:var(--red);">Admin Panel</h2><button class="nav-btn" onclick="logoutAdmin()">Выйти</button></header>
+        <div class="admin-container">
+            <div class="admin-grid">
+                <div class="admin-card">
+                    <h3>Выдать подарок</h3>
+                    <input type="text" id="adm-give-id" placeholder="ID пользователя">
+                    <select id="adm-give-item"></select>
+                    <button style="background:var(--green); color:#000;" onclick="adminGiveGift()">Выдать</button>
+                </div>
+                <div class="admin-card">
+                    <h3>Модерация</h3>
+                    <input type="text" id="adm-mod-id" placeholder="ID пользователя">
+                    <button style="background:var(--red);" onclick="adminAction('ban')">Заблокировать</button>
+                    <button style="background:#ff9800;" onclick="adminAction('mute')">Выдать мут</button>
+                </div>
+                <div class="admin-card">
+                    <h3>Управление сайтом</h3>
+                    <input type="text" id="adm-close-reason" placeholder="Причина закрытия">
+                    <button style="background:var(--red);" onclick="adminAction('close')">Закрыть сайт</button>
+                    <button style="background:var(--green); color:#000;" onclick="adminAction('open')">Открыть сайт</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =========================================================
+        // МОСТ МЕЖДУ ТВОИМ СЕРВЕРОМ (Claude) И ЭТИМ ДИЗАЙНОМ
+        // =========================================================
+        const $ = id => document.getElementById(id);
+        let ITEMS = [], S = { id: '', inv: {}, site: { open: true } };
+        let tok = localStorage.getItem('akse_token'), sid = sessionStorage.getItem('akse_sid');
+        let myInventory = [], selectedStakes = [], selectedTarget = null, currentChance = 50, isSpinning = false;
+        
+        const item = id => ITEMS.find(i => i.id === id);
+        
+        // Функция запроса к твоему бэкенду
+        const api = async (p, b) => {
+            const r = await fetch(p, {
+                method: b ? 'POST' : 'GET',
+                headers: { 'x-token': tok || '' },
+                body: b ? JSON.stringify(b) : undefined
+            });
+            return { ok: r.ok, d: await r.json().catch(() => ({})) };
+        };
+
+        // --- НАВИГАЦИЯ ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            if (viewId === 'view-inventory') renderInventory();
+            if (viewId === 'view-main') renderGame();
+        }
+
+        // --- ИНИЦИАЛИЗАЦИЯ (СТУЧИМСЯ НА СЕРВЕР) ---
+        async function initApp() {
+            try {
+                // 1. Получаем список предметов с сервера
+                const g = await (await fetch('/api/gifts')).json();
+                ITEMS = Object.entries(g).map(([id, [name, value]]) => ({ id, name, value, img: `/g/${id}.png` }));
+                
+                // 2. Авторизация
+                let r = tok ? await api('/api/me') : null;
+                if (!r || !r.ok) {
+                    const d = await (await fetch('/api/register', { method: 'POST' })).json();
+                    tok = d.token;
+                    localStorage.setItem('akse_token', tok);
+                    r = await api('/api/me');
+                }
+                applyState(r.d);
+
+                // 3. Подключение к реальному времени (EventSource)
+                new EventSource('/api/stream?t=' + tok).onmessage = e => {
+                    const s = JSON.parse(e.data);
+                    if (isSpinning) { /* Ждем окончания анимации */ } else { applyState(s); }
+                };
+            } catch (e) {
+                console.error("Ошибка подключения к серверу. Убедитесь, что бэкенд запущен.");
+                alert("Нет связи с сервером! Проверьте, запущен ли бэкенд (Node.js/Python).");
+            }
+        }
+
+        function applyState(newState) {
+            S = newState;
+            myInventory = ITEMS.flatMap(i => Array(S.inv[i.id] || 0).fill(i.id));
+            
+            $('user-id').innerText = S.id;
+            $('user-inv-count').innerText = myInventory.length;
+            
+            // Проверка на бан
+            if (S.banned) $('ov-banned').style.display = 'flex';
+            
+            // Проверка на закрытие сайта
+            if (!S.site.open) {
+                $('ov-closed').style.display = 'flex';
+                $('close-reason-text').innerText = 'Причина: ' + (S.site.reason || 'Технические работы');
+            } else {
+                $('ov-closed').style.display = 'none';
+            }
+
+            if ($('view-main').classList.contains('active')) renderGame();
+            if ($('view-inventory').classList.contains('active')) renderInventory();
+        }
+
+        // --- ЛОГИКА РУЛЕТКИ ---
+        function renderGame() {
+            // Мои предметы
+            const myGrid = $('my-items');
+            myGrid.innerHTML = '';
+            myInventory.forEach((id, index) => {
+                const it = item(id);
+                if (!it) return;
+                const el = document.createElement('div');
+                el.className = `item ${selectedStakes.includes(index) ? 'selected' : ''}`;
+                el.onclick = () => { if (!isSpinning) { toggleStake(index); } };
+                el.innerHTML = `<img src="${it.img}"><div class="item-price">★ ${it.value}</div>`;
+                myGrid.appendChild(el);
+            });
+
+            // Цели
+            const tGrid = $('target-items');
+            tGrid.innerHTML = '';
+            ITEMS.forEach(it => {
+                const el = document.createElement('div');
+                el.className = `item ${selectedTarget === it.id ? 'selected' : ''}`;
+                el.onclick = () => { if (!isSpinning) { selectedTarget = it.id; renderGame(); } };
+                el.innerHTML = `<img src="${it.img}"><div class="item-price">★ ${it.value}</div>`;
+                tGrid.appendChild(el);
+            });
+
+            validateSpin();
+        }
+
+        function toggleStake(index) {
+            if (selectedStakes.includes(index)) {
+                selectedStakes = selectedStakes.filter(i => i !== index);
+            } else {
+                selectedStakes.push(index);
+            }
+            renderGame();
+        }
+
+        function setChance(chance) {
+            if (isSpinning) return;
+            currentChance = chance;
+            const deg = (chance / 100) * 360;
+            $('wheel').style.background = `conic-gradient(var(--green) ${deg}deg, var(--red) ${deg}deg)`;
+            $('chance-text').innerText = chance + '%';
+            document.querySelectorAll('.q-btn').forEach(btn => btn.classList.toggle('active', btn.innerText === chance + '%'));
+            validateSpin();
+        }
+
+        function validateSpin() {
+            const btn = $('btn-spin');
+            btn.disabled = (selectedStakes.length === 0 || !selectedTarget || isSpinning);
+        }
+
+        async function spinWheel() {
+            if (isSpinning || selectedStakes.length === 0 || !selectedTarget) return;
+            isSpinning = true;
+            $('btn-spin').disabled = true;
+            $('btn-spin').innerText = 'Крутим...';
+
+            const randomDeg = Math.floor(Math.random() * 360) + (360 * 5);
+            $('wheel').style.transform = `rotate(${randomDeg}deg)`;
+
+            // Отправляем ставку на СЕРВЕР (твой бэкенд решает, выиграл ты или нет)
+            const stakeIds = selectedStakes.map(i => myInventory[i]);
+            const r = await api('/api/spin', { stakes: stakeIds, target: selectedTarget });
+
+            setTimeout(() => {
+                $('wheel').style.transition = 'none';
+                $('wheel').style.transform = 'rotate(0deg)';
+                setTimeout(() => { $('wheel').style.transition = 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)'; }, 50);
+
+                if (!r.ok) {
+                    alert('❌ ' + (r.d.error || 'Ошибка сервера'));
+                } else {
+                    alert(r.d.win ? `🎉 УСПЕХ! Вы выиграли ${item(selectedTarget).name}!` : '😢 Неудача. Предметы сгорели.');
+                    applyState(r.d.state); // Обновляем стейт из ответа сервера
+                }
+
+                selectedStakes = [];
+                selectedTarget = null;
+                isSpinning = false;
+                $('btn-spin').innerText = 'Крутить';
+                renderGame();
+            }, 4100);
+        }
+
+        function renderInventory() {
+            const grid = $('inv-grid');
+            grid.innerHTML = '';
+            const counts = {};
+            myInventory.forEach(id => counts[id] = (counts[id] || 0) + 1);
+            
+            for (const [id, count] of Object.entries(counts)) {
+                const it = item(id);
+                if (!it) continue;
+                const el = document.createElement('div');
+                el.className = 'item';
+                el.style.position = 'relative';
+                el.innerHTML = `<img src="${it.img}"><div class="item-price">★ ${it.value}</div><div style="position:absolute; top:-5px; right:-5px; background:var(--red); color:white; border-radius:50%; padding:2px 8px; font-weight:bold; font-size:12px;">${count}</div>`;
+                grid.appendChild(el);
+            }
+        }
+
+        // --- АДМИНКА (РАБОТАЕТ С ТВОИМ СЕРВЕРОМ) ---
+        async function loginAdmin() {
+            const code = $('admin-pass').value;
+            // Твой пароль
+            if (code !== "AkselGraderOFFic1488") return alert("❌ Неверный пароль!");
+
+            try {
+                const r = await fetch('/api/admin/login', { method: 'POST', body: JSON.stringify({ code }) });
+                const d = await r.json();
+                if (!r.ok) return alert('❌ Ошибка сервера: ' + (d.error || 'Неверный код'));
+                
+                sid = d.sid;
+                sessionStorage.setItem('akse_sid', sid);
+                switchView('view-admin-panel');
+                populateAdminSelect();
+            } catch (e) {
+                alert("Нет связи с сервером для входа в админку.");
+            }
+        }
+
+        function logoutAdmin() {
+            sid = null;
+            sessionStorage.removeItem('akse_sid');
+            switchView('view-welcome');
+        }
+
+        function populateAdminSelect() {
+            const sel = $('adm-give-item');
+            sel.innerHTML = ITEMS.map(i => `<option value="${i.id}">${i.name} (★ ${i.value})</option>`).join('');
+        }
+
+        async function adminGiveGift() {
+            const targetId = $('adm-give-id').value.trim();
+            const giftId = $('adm-give-item').value;
+            if (!targetId) return alert("Введите ID!");
+            
+            try {
+                const r = await fetch('/api/admin/give', {
+                    method: 'POST',
+                    headers: { 'x-sid': sid || '' },
+                    body: JSON.stringify({ id: targetId, gift: giftId, n: 1 })
+                });
+                if (r.ok) alert(`✅ Подарок выдан пользователю ${targetId}!`);
+                else alert("❌ Ошибка при выдаче!");
+            } catch (e) { alert("Сервер недоступен."); }
+        }
+
+        async function adminAction(type) {
+            const id = $('adm-mod-id').value.trim();
+            let body = { id };
+            let endpoint = '';
+
+            if (type === 'ban') { endpoint = 'ban'; body.on = true; body.reason = "Нарушение правил"; }
+            if (type === 'mute') { endpoint = 'mute'; body.minutes = 1440; } // 24 часа
+            if (type === 'close') { endpoint = 'site'; body.open = false; body.reason = $('adm-close-reason').value; }
+            if (type === 'open') { endpoint = 'site'; body.open = true; body.reason = ''; }
+
+            try {
+                const r = await fetch('/api/admin/' + endpoint, {
+                    method: 'POST',
+                    headers: { 'x-sid': sid || '' },
+                    body: JSON.stringify(body)
+                });
+                if (r.ok) alert(`✅ Действие (${type}) выполнено!`);
+                else alert("❌ Ошибка! Проверьте правильность ввода.");
+            } catch (e) { alert("Сервер недоступен."); }
+        }
+
+        // Запуск
+        initApp();
+        setChance(50);
+
+    </script>
+</body>
+</html>
