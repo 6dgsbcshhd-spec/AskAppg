@@ -65,6 +65,14 @@
         .action-btn { background: linear-gradient(135deg, var(--green), #00b0ff); color: #000; width: 100%; padding: 18px; border: none; border-radius: 12px; font-size: 18px; font-weight: 900; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
         .action-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
 
+        /* Промокод */
+        .promo-box { background: var(--panel); border: 1px dashed var(--gold); padding: 15px; border-radius: 15px; width: 100%; text-align: center; margin-top: 15px; }
+        .promo-box p { color: var(--text-muted); font-size: 12px; margin-bottom: 10px; }
+        .promo-input-group { display: flex; gap: 10px; }
+        .promo-input-group input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: white; text-transform: uppercase; }
+        .promo-input-group button { background: var(--gold); color: black; border: none; padding: 0 20px; border-radius: 8px; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .promo-input-group button:hover { background: #e6c200; }
+
         /* Инвентарь и Админка */
         .inv-container, .admin-container { padding: 40px; max-width: 1000px; margin: 0 auto; width: 100%; }
         .inv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 15px; }
@@ -75,6 +83,11 @@
         .admin-card h3 { margin-bottom: 15px; color: var(--gold); }
         .admin-card input, .admin-card select { width: 100%; padding: 12px; margin-bottom: 10px; background: var(--bg); border: 1px solid var(--border); color: white; border-radius: 8px; }
         .admin-card button { width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; margin-bottom: 10px; color: white; }
+
+        /* Стили для списка промокодов в админке */
+        .promo-list-box { max-height: 200px; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; margin-top: 10px; font-family: monospace; font-size: 12px; color: var(--text-muted); user-select: text; }
+        .promo-list-box div { padding: 3px 0; border-bottom: 1px solid #222; }
+        .copy-btn { background: #0088cc; color: white; margin-top: 10px; }
 
         .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column; text-align: center; }
         .overlay h1 { color: var(--red); font-size: 40px; margin-bottom: 15px; }
@@ -92,7 +105,6 @@
     <div class="overlay" id="ov-closed"><h1>Сайт временно закрыт</h1><p id="close-reason-text"></p></div>
     <div class="overlay" id="ov-banned"><h1>Вы заблокированы</h1><p id="ban-reason-text"></p></div>
 
-    <!-- ЭКРАН 1: ПРИВЕТСТВИЕ -->
     <div class="view active" id="view-welcome">
         <div class="main-logo">AkseGrader</div>
         <div class="welcome-text">Добро пожаловать в лучшую рулетку подарков!<br>Желаем тебе огромной удачи и жирных апгрейдов! 🍀</div>
@@ -100,7 +112,6 @@
         <button class="nav-btn" style="margin-top:30px;" onclick="switchView('view-admin-login')">Вход для администратора</button>
     </div>
 
-    <!-- ЭКРАН 2: РУЛЕТКА -->
     <div class="view" id="view-main">
         <header>
             <div class="nav-links">
@@ -140,6 +151,14 @@
                     <button class="q-btn" onclick="setChance(90)">90%</button>
                 </div>
                 <button class="action-btn" id="btn-spin" onclick="spinWheel()" disabled>Крутить</button>
+                
+                <div class="promo-box">
+                    <p>Есть промокод? Активируй его!</p>
+                    <div class="promo-input-group">
+                        <input type="text" id="promo-input" placeholder="AKSE-HEART-1">
+                        <button onclick="redeemPromo()">Ввод</button>
+                    </div>
+                </div>
             </div>
 
             <div class="slot">
@@ -149,13 +168,11 @@
         </div>
     </div>
 
-    <!-- ЭКРАН 3: ИНВЕНТАРЬ -->
     <div class="view" id="view-inventory">
         <header><button class="nav-btn" onclick="switchView('view-main')">← Назад</button><h2 style="color:var(--gold);">Инвентарь</h2></header>
         <div class="inv-container"><div class="inv-grid" id="inv-grid"></div></div>
     </div>
 
-    <!-- ЭКРАН 4: ВХОД АДМИНА -->
     <div class="view" id="view-admin-login">
         <header><button class="nav-btn" onclick="switchView('view-welcome')">← На главную</button></header>
         <div class="admin-login">
@@ -165,17 +182,10 @@
         </div>
     </div>
 
-    <!-- ЭКРАН 5: АДМИН ПАНЕЛЬ -->
     <div class="view" id="view-admin-panel">
         <header><h2 style="color:var(--red);">Admin Panel</h2><button class="nav-btn" onclick="logoutAdmin()">Выйти</button></header>
         <div class="admin-container">
             <div class="admin-grid">
-                <div class="admin-card">
-                    <h3>Выдать подарок</h3>
-                    <input type="text" id="adm-give-id" placeholder="ID пользователя">
-                    <select id="adm-give-item"></select>
-                    <button style="background:var(--green); color:#000;" onclick="adminGiveGift()">Выдать</button>
-                </div>
                 <div class="admin-card">
                     <h3>Модерация</h3>
                     <input type="text" id="adm-mod-id" placeholder="ID пользователя">
@@ -188,79 +198,118 @@
                     <button style="background:var(--red);" onclick="adminAction('close')">Закрыть сайт</button>
                     <button style="background:var(--green); color:#000;" onclick="adminAction('open')">Открыть сайт</button>
                 </div>
+                
+                <!-- ГЕНЕРАТОР ПРОМОКОДОВ -->
+                <div class="admin-card" style="grid-column: span 2;">
+                    <h3>Посмотреть промокоды</h3>
+                    <select id="promo-gen-select" onchange="showPromoList()"></select>
+                    <div class="promo-list-box" id="promo-list-box">Выберите подарок выше, чтобы увидеть 200 кодов...</div>
+                    <button class="copy-btn" onclick="copyPromos()">Скопировать все коды</button>
+                </div>
+
             </div>
         </div>
     </div>
 
     <script>
-        // =========================================================
-        // МОСТ МЕЖДУ ТВОИМ СЕРВЕРОМ (Claude) И ЭТИМ ДИЗАЙНОМ
-        // =========================================================
         const $ = id => document.getElementById(id);
-        let ITEMS = [], S = { id: '', inv: {}, site: { open: true } };
+        
+        let useServer = true;
+        let ITEMS = [
+            { id: 'heart', name: 'Сердце', value: 15, img: 'https://img.icons8.com/3d-fluency/94/hearts.png' },
+            { id: 'bear', name: 'Мишка', value: 15, img: 'https://img.icons8.com/3d-fluency/94/teddy-bear.png' },
+            { id: 'gift', name: 'Подарок', value: 25, img: 'https://img.icons8.com/3d-fluency/94/gift.png' },
+            { id: 'rose', name: 'Роза', value: 25, img: 'https://img.icons8.com/3d-fluency/94/rose.png' },
+            { id: 'cake', name: 'Торт', value: 50, img: 'https://img.icons8.com/3d-fluency/94/birthday-cake.png' },
+            { id: 'bouquet', name: 'Букет', value: 50, img: 'https://img.icons8.com/3d-fluency/94/bouquet.png' },
+            { id: 'rocket', name: 'Ракета', value: 50, img: 'https://img.icons8.com/3d-fluency/94/rocket.png' },
+            { id: 'trophy', name: 'Кубок', value: 100, img: 'https://img.icons8.com/3d-fluency/94/trophy.png' },
+            { id: 'ring', name: 'Кольцо', value: 100, img: 'https://img.icons8.com/3d-fluency/94/diamond-ring.png' },
+            { id: 'diamond', name: 'Алмаз', value: 100, img: 'https://img.icons8.com/3d-fluency/94/diamond.png' },
+            { id: 'champ', name: 'Шампанское', value: 50, img: 'https://img.icons8.com/3d-fluency/94/champagne.png' },
+            { id: 'torch', name: 'Факел', value: 500, img: 'https://img.icons8.com/3d-fluency/94/torch.png' }
+        ];
+
+        let S = { id: '1001', inv: {}, site: { open: true }, banned: false };
         let tok = localStorage.getItem('akse_token'), sid = sessionStorage.getItem('akse_sid');
         let myInventory = [], selectedStakes = [], selectedTarget = null, currentChance = 50, isSpinning = false;
         
         const item = id => ITEMS.find(i => i.id === id);
-        
-        // Функция запроса к твоему бэкенду
-        const api = async (p, b) => {
-            const r = await fetch(p, {
-                method: b ? 'POST' : 'GET',
-                headers: { 'x-token': tok || '' },
-                body: b ? JSON.stringify(b) : undefined
-            });
-            return { ok: r.ok, d: await r.json().catch(() => ({})) };
-        };
 
-        // --- НАВИГАЦИЯ ---
-        function switchView(viewId) {
-            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-            document.getElementById(viewId).classList.add('active');
-            if (viewId === 'view-inventory') renderInventory();
-            if (viewId === 'view-main') renderGame();
+        async function checkServer() {
+            try { const r = await fetch('/api/gifts', { method: 'HEAD' }); return r.ok; } catch (e) { return false; }
         }
 
-        // --- ИНИЦИАЛИЗАЦИЯ (СТУЧИМСЯ НА СЕРВЕР) ---
         async function initApp() {
-            try {
-                // 1. Получаем список предметов с сервера
-                const g = await (await fetch('/api/gifts')).json();
-                ITEMS = Object.entries(g).map(([id, [name, value]]) => ({ id, name, value, img: `/g/${id}.png` }));
-                
-                // 2. Авторизация
-                let r = tok ? await api('/api/me') : null;
-                if (!r || !r.ok) {
-                    const d = await (await fetch('/api/register', { method: 'POST' })).json();
-                    tok = d.token;
-                    localStorage.setItem('akse_token', tok);
-                    r = await api('/api/me');
-                }
-                applyState(r.d);
+            if (window.location.protocol === 'file:') useServer = false;
+            else useServer = await checkServer();
 
-                // 3. Подключение к реальному времени (EventSource)
-                new EventSource('/api/stream?t=' + tok).onmessage = e => {
-                    const s = JSON.parse(e.data);
-                    if (isSpinning) { /* Ждем окончания анимации */ } else { applyState(s); }
-                };
-            } catch (e) {
-                console.error("Ошибка подключения к серверу. Убедитесь, что бэкенд запущен.");
-                alert("Нет связи с сервером! Проверьте, запущен ли бэкенд (Node.js/Python).");
+            if (!useServer) {
+                if (!localStorage.getItem('local_user')) {
+                    localStorage.setItem('local_user', JSON.stringify({ id: '7777', inv: { heart: 1, rose: 1, cake: 1 } }));
+                }
+                S = JSON.parse(localStorage.getItem('local_user'));
+                applyState(S);
+            } else {
+                try {
+                    const g = await (await fetch('/api/gifts')).json();
+                    ITEMS = Object.entries(g).map(([id, [name, value]]) => ({ id, name, value, img: `/g/${id}.png` }));
+                    let r = tok ? await fetch('/api/me', { headers: { 'x-token': tok } }) : null;
+                    if (!r || !r.ok) {
+                        const d = await (await fetch('/api/register', { method: 'POST' })).json();
+                        tok = d.token; localStorage.setItem('akse_token', tok);
+                        r = await fetch('/api/me', { headers: { 'x-token': tok } });
+                    }
+                    applyState(await r.json());
+                    new EventSource('/api/stream?t=' + tok).onmessage = e => {
+                        if (!isSpinning) applyState(JSON.parse(e.data));
+                    };
+                } catch (e) { useServer = false; initApp(); }
             }
+            
+            // Заполняем селект для генератора промокодов
+            const sel = $('promo-gen-select');
+            sel.innerHTML = ITEMS.map(i => `<option value="${i.id}">${i.name} (★ ${i.value})</option>`).join('');
+            showPromoList(); // Сразу показываем коды для первого подарка
+        }
+
+        // --- ГЕНЕРАТОР ПРОМОКОДОВ В АДМИНКЕ ---
+        function showPromoList() {
+            const giftId = $('promo-gen-select').value;
+            const box = $('promo-list-box');
+            box.innerHTML = '';
+            
+            let html = '';
+            for (let i = 1; i <= 200; i++) {
+                const code = `AKSE-${giftId.toUpperCase()}-${i}`;
+                html += `<div>${code}</div>`;
+            }
+            box.innerHTML = html;
+        }
+
+        function copyPromos() {
+            const giftId = $('promo-gen-select').value;
+            let text = `Промокоды на ${item(giftId).name}:\n\n`;
+            for (let i = 1; i <= 200; i++) {
+                text += `AKSE-${giftId.toUpperCase()}-${i}\n`;
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert("✅ Все 200 промокодов скопированы! Можешь вставлять их в Telegram.");
+            }).catch(() => {
+                alert("❌ Ошибка копирования. Выдели текст вручную.");
+            });
         }
 
         function applyState(newState) {
             S = newState;
+            if (!S.inv) S.inv = {};
             myInventory = ITEMS.flatMap(i => Array(S.inv[i.id] || 0).fill(i.id));
             
             $('user-id').innerText = S.id;
             $('user-inv-count').innerText = myInventory.length;
             
-            // Проверка на бан
             if (S.banned) $('ov-banned').style.display = 'flex';
-            
-            // Проверка на закрытие сайта
-            if (!S.site.open) {
+            if (S.site && !S.site.open) {
                 $('ov-closed').style.display = 'flex';
                 $('close-reason-text').innerText = 'Причина: ' + (S.site.reason || 'Технические работы');
             } else {
@@ -271,24 +320,25 @@
             if ($('view-inventory').classList.contains('active')) renderInventory();
         }
 
-        // --- ЛОГИКА РУЛЕТКИ ---
+        function switchView(viewId) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById(viewId).classList.add('active');
+            if (viewId === 'view-inventory') renderInventory();
+            if (viewId === 'view-main') renderGame();
+        }
+
         function renderGame() {
-            // Мои предметы
-            const myGrid = $('my-items');
-            myGrid.innerHTML = '';
+            const myGrid = $('my-items'); myGrid.innerHTML = '';
             myInventory.forEach((id, index) => {
-                const it = item(id);
-                if (!it) return;
+                const it = item(id); if (!it) return;
                 const el = document.createElement('div');
                 el.className = `item ${selectedStakes.includes(index) ? 'selected' : ''}`;
-                el.onclick = () => { if (!isSpinning) { toggleStake(index); } };
+                el.onclick = () => { if (!isSpinning) toggleStake(index); };
                 el.innerHTML = `<img src="${it.img}"><div class="item-price">★ ${it.value}</div>`;
                 myGrid.appendChild(el);
             });
 
-            // Цели
-            const tGrid = $('target-items');
-            tGrid.innerHTML = '';
+            const tGrid = $('target-items'); tGrid.innerHTML = '';
             ITEMS.forEach(it => {
                 const el = document.createElement('div');
                 el.className = `item ${selectedTarget === it.id ? 'selected' : ''}`;
@@ -296,16 +346,12 @@
                 el.innerHTML = `<img src="${it.img}"><div class="item-price">★ ${it.value}</div>`;
                 tGrid.appendChild(el);
             });
-
             validateSpin();
         }
 
         function toggleStake(index) {
-            if (selectedStakes.includes(index)) {
-                selectedStakes = selectedStakes.filter(i => i !== index);
-            } else {
-                selectedStakes.push(index);
-            }
+            if (selectedStakes.includes(index)) selectedStakes = selectedStakes.filter(i => i !== index);
+            else selectedStakes.push(index);
             renderGame();
         }
 
@@ -320,12 +366,42 @@
         }
 
         function validateSpin() {
-            const btn = $('btn-spin');
-            btn.disabled = (selectedStakes.length === 0 || !selectedTarget || isSpinning);
+            $('btn-spin').disabled = (selectedStakes.length === 0 || !selectedTarget || isSpinning);
+        }
+
+        function redeemPromo() {
+            const code = $('promo-input').value.trim().toUpperCase();
+            if (!code) return alert("Введите промокод!");
+
+            const parts = code.split('-');
+            if (parts.length !== 3 || parts[0] !== 'AKSE') return alert("❌ Неверный формат промокода!");
+
+            const giftId = parts[1].toLowerCase();
+            const num = parseInt(parts[2]);
+
+            if (!item(giftId)) return alert("❌ Такого подарка не существует!");
+            if (isNaN(num) || num < 1 || num > 200) return alert("❌ Неверный номер промокода (1-200)!");
+
+            const usedKey = `used_promo_${S.id}`;
+            let usedPromos = JSON.parse(localStorage.getItem(usedKey)) || [];
+            
+            if (usedPromos.includes(code)) return alert("❌ Вы уже использовали этот промокод!");
+
+            S.inv[giftId] = (S.inv[giftId] || 0) + 1;
+            usedPromos.push(code);
+            localStorage.setItem(usedKey, JSON.stringify(usedPromos));
+
+            if (!useServer) {
+                localStorage.setItem('local_user', JSON.stringify(S));
+                applyState(S);
+            }
+
+            alert(`🎁 УСПЕХ! Вы получили подарок: ${item(giftId).name}!`);
+            $('promo-input').value = '';
         }
 
         async function spinWheel() {
-            if (isSpinning || selectedStakes.length === 0 || !selectedTarget) return;
+            if (isSpinning) return;
             isSpinning = true;
             $('btn-spin').disabled = true;
             $('btn-spin').innerText = 'Крутим...';
@@ -333,119 +409,118 @@
             const randomDeg = Math.floor(Math.random() * 360) + (360 * 5);
             $('wheel').style.transform = `rotate(${randomDeg}deg)`;
 
-            // Отправляем ставку на СЕРВЕР (твой бэкенд решает, выиграл ты или нет)
-            const stakeIds = selectedStakes.map(i => myInventory[i]);
-            const r = await api('/api/spin', { stakes: stakeIds, target: selectedTarget });
+            let isWin = false;
+
+            if (useServer) {
+                try {
+                    const stakeIds = selectedStakes.map(i => myInventory[i]);
+                    const r = await fetch('/api/spin', { 
+                        method: 'POST', headers: { 'x-token': tok }, 
+                        body: JSON.stringify({ stakes: stakeIds, target: selectedTarget }) 
+                    });
+                    const d = await r.json();
+                    if (!r.ok) { alert('❌ ' + (d.error || 'Ошибка')); }
+                    else { isWin = d.win; applyState(d.state); }
+                } catch (e) { alert("Сервер упал во время игры."); }
+            } else {
+                const normDeg = randomDeg % 360;
+                isWin = normDeg <= (currentChance * 3.6);
+                
+                if (isWin) S.inv[selectedTarget] = (S.inv[selectedTarget] || 0) + 1;
+                
+                selectedStakes.forEach(idx => {
+                    const id = myInventory[idx];
+                    S.inv[id] = Math.max(0, (S.inv[id] || 0) - 1);
+                });
+                localStorage.setItem('local_user', JSON.stringify(S));
+            }
 
             setTimeout(() => {
                 $('wheel').style.transition = 'none';
                 $('wheel').style.transform = 'rotate(0deg)';
                 setTimeout(() => { $('wheel').style.transition = 'transform 4s cubic-bezier(0.2, 0.8, 0.2, 1)'; }, 50);
 
-                if (!r.ok) {
-                    alert('❌ ' + (r.d.error || 'Ошибка сервера'));
+                if (useServer) {
+                    alert(isWin ? `🎉 УСПЕХ! Вы выиграли ${item(selectedTarget).name}!` : '😢 Неудача. Предметы сгорели.');
                 } else {
-                    alert(r.d.win ? `🎉 УСПЕХ! Вы выиграли ${item(selectedTarget).name}!` : '😢 Неудача. Предметы сгорели.');
-                    applyState(r.d.state); // Обновляем стейт из ответа сервера
+                    alert(isWin ? `🎉 УСПЕХ (Локально)! Вы выиграли ${item(selectedTarget).name}!` : '😢 Неудача (Локально).');
+                    applyState(S);
                 }
 
-                selectedStakes = [];
-                selectedTarget = null;
-                isSpinning = false;
+                selectedStakes = []; selectedTarget = null; isSpinning = false;
                 $('btn-spin').innerText = 'Крутить';
                 renderGame();
             }, 4100);
         }
 
         function renderInventory() {
-            const grid = $('inv-grid');
-            grid.innerHTML = '';
+            const grid = $('inv-grid'); grid.innerHTML = '';
             const counts = {};
             myInventory.forEach(id => counts[id] = (counts[id] || 0) + 1);
             
             for (const [id, count] of Object.entries(counts)) {
-                const it = item(id);
-                if (!it) continue;
+                const it = item(id); if (!it) continue;
                 const el = document.createElement('div');
-                el.className = 'item';
-                el.style.position = 'relative';
+                el.className = 'item'; el.style.position = 'relative';
                 el.innerHTML = `<img src="${it.img}"><div class="item-price">★ ${it.value}</div><div style="position:absolute; top:-5px; right:-5px; background:var(--red); color:white; border-radius:50%; padding:2px 8px; font-weight:bold; font-size:12px;">${count}</div>`;
                 grid.appendChild(el);
             }
         }
 
-        // --- АДМИНКА (РАБОТАЕТ С ТВОИМ СЕРВЕРОМ) ---
+        // АДМИНКА
         async function loginAdmin() {
             const code = $('admin-pass').value;
-            // Твой пароль
             if (code !== "AkselGraderOFFic1488") return alert("❌ Неверный пароль!");
+
+            if (!useServer) {
+                switchView('view-admin-panel');
+                return;
+            }
 
             try {
                 const r = await fetch('/api/admin/login', { method: 'POST', body: JSON.stringify({ code }) });
                 const d = await r.json();
                 if (!r.ok) return alert('❌ Ошибка сервера: ' + (d.error || 'Неверный код'));
-                
-                sid = d.sid;
-                sessionStorage.setItem('akse_sid', sid);
+                sid = d.sid; sessionStorage.setItem('akse_sid', sid);
                 switchView('view-admin-panel');
-                populateAdminSelect();
             } catch (e) {
-                alert("Нет связи с сервером для входа в админку.");
+                alert("⚠️ Сервер не отвечает. Вход в локальном режиме.");
+                useServer = false;
+                switchView('view-admin-panel');
             }
         }
 
         function logoutAdmin() {
-            sid = null;
-            sessionStorage.removeItem('akse_sid');
-            switchView('view-welcome');
-        }
-
-        function populateAdminSelect() {
-            const sel = $('adm-give-item');
-            sel.innerHTML = ITEMS.map(i => `<option value="${i.id}">${i.name} (★ ${i.value})</option>`).join('');
-        }
-
-        async function adminGiveGift() {
-            const targetId = $('adm-give-id').value.trim();
-            const giftId = $('adm-give-item').value;
-            if (!targetId) return alert("Введите ID!");
-            
-            try {
-                const r = await fetch('/api/admin/give', {
-                    method: 'POST',
-                    headers: { 'x-sid': sid || '' },
-                    body: JSON.stringify({ id: targetId, gift: giftId, n: 1 })
-                });
-                if (r.ok) alert(`✅ Подарок выдан пользователю ${targetId}!`);
-                else alert("❌ Ошибка при выдаче!");
-            } catch (e) { alert("Сервер недоступен."); }
+            sid = null; sessionStorage.removeItem('akse_sid'); switchView('view-welcome');
         }
 
         async function adminAction(type) {
+            if (!useServer) {
+                alert(`✅ [Локально] Действие (${type}) выполнено!`);
+                return;
+            }
+
             const id = $('adm-mod-id').value.trim();
             let body = { id };
             let endpoint = '';
 
-            if (type === 'ban') { endpoint = 'ban'; body.on = true; body.reason = "Нарушение правил"; }
-            if (type === 'mute') { endpoint = 'mute'; body.minutes = 1440; } // 24 часа
+            if (type === 'ban') { endpoint = 'ban'; body.on = true; body.reason = "Нарушение"; }
+            if (type === 'mute') { endpoint = 'mute'; body.minutes = 1440; }
             if (type === 'close') { endpoint = 'site'; body.open = false; body.reason = $('adm-close-reason').value; }
             if (type === 'open') { endpoint = 'site'; body.open = true; body.reason = ''; }
 
             try {
                 const r = await fetch('/api/admin/' + endpoint, {
-                    method: 'POST',
-                    headers: { 'x-sid': sid || '' },
+                    method: 'POST', headers: { 'x-sid': sid || '' },
                     body: JSON.stringify(body)
                 });
                 if (r.ok) alert(`✅ Действие (${type}) выполнено!`);
-                else alert("❌ Ошибка! Проверьте правильность ввода.");
-            } catch (e) { alert("Сервер недоступен."); }
+                else alert("❌ Ошибка!");
+            } catch (e) { alert("⚠️ Сервер упал. Действие не выполнено."); }
         }
 
-        // Запуск
         initApp();
         setChance(50);
-
     </script>
 </body>
 </html>
